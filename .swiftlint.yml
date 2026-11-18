@@ -1,0 +1,24 @@
+included: [Sources, Tests]
+excluded: [.build, build]
+disabled_rules: [opening_brace, trailing_comma]
+line_length: { warning: 120, error: 160 }
+file_length: { warning: 250, error: 250 }
+type_body_length: { warning: 200, error: 200 }
+function_body_length: { warning: 25, error: 40 }
+identifier_name:
+  # Geometry vocabulary: a point's x and y, a ramp's t.
+  excluded: [x, y, t, at, to, u, i]
+type_name:
+  excluded: []
+function_parameter_count: { warning: 4, error: 6 }
+nesting: { type_level: 2 }
+force_cast: error
+force_try: error
+opt_in_rules: [discouraged_optional_boolean, empty_count, explicit_init, first_where, force_unwrapping, overridden_super_call, sorted_imports, vertical_whitespace_closing_braces]
+analyzer_rules: [unused_import]
+custom_rules:
+  no_print:
+    name: "No print"
+    regex: '\bprint\('
+    message: "Use os.Logger instead of print."
+    severity: error
