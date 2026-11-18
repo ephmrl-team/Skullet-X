@@ -19,20 +19,26 @@
 
         private var gradientStops: [Gradient.Stop] {
             var result: [Gradient.Stop] = []
-            var last: CGFloat = -1
             for (location, alpha) in zip(stops.locations, stops.alphas) {
                 let value = min(max(location, 0), 1)
-                // SwiftUI wants increasing locations; clamped duplicates add nothing.
-                guard value > last else { continue }
-                result.append(
-                    Gradient.Stop(
-                        color: (white ? Color.white : Color.black).opacity(Double(alpha)),
-                        location: Double(value)
-                    )
-                )
-                last = value
+                if let index = result.indices.last, result[index].location == Double(value) {
+                    // Stops that clamp onto an edge must keep the alpha the ramp has at that edge:
+                    // the later stop for 0 (the ramp is entering), the earlier one for 1 (leaving).
+                    if value == 0 {
+                        result[index] = stop(alpha: alpha, at: value)
+                    }
+                    continue
+                }
+                result.append(stop(alpha: alpha, at: value))
             }
             return result.isEmpty ? [Gradient.Stop(color: .clear, location: 0)] : result
+        }
+
+        private func stop(alpha: CGFloat, at location: CGFloat) -> Gradient.Stop {
+            Gradient.Stop(
+                color: (white ? Color.white : Color.black).opacity(Double(alpha)),
+                location: Double(location)
+            )
         }
     }
 #endif

@@ -45,12 +45,7 @@
             TimelineView(.animation(minimumInterval: 1 / 60, paused: run == nil)) { context in
                 panes(content: content, at: context.date)
             }
-            .background {
-                GeometryReader { proxy in
-                    Color.clear.preference(key: SkulletSizeKey.self, value: proxy.size)
-                }
-            }
-            .onPreferenceChange(SkulletSizeKey.self) { size = $0 }
+            .modifier(SkulletSizeReader(size: $size))
             .onAppear {
                 shownAt = Date()
                 if !isLoading {
@@ -159,6 +154,26 @@
         static var defaultValue: CGSize = .zero
         static func reduce(value: inout CGSize, nextValue: () -> CGSize) {
             value = nextValue()
+        }
+    }
+
+    /// Reports the modifier's size without touching layout. `onGeometryChange` is synchronous with the
+    /// layout pass, so the first frame already knows the pane; the preference path is the iOS 17 fallback.
+    private struct SkulletSizeReader: ViewModifier {
+        @Binding var size: CGSize
+
+        func body(content: Content) -> some View {
+            if #available(iOS 18.0, macOS 15.0, *) {
+                content.onGeometryChange(for: CGSize.self) { $0.size } action: { size = $0 }
+            } else {
+                content
+                    .background {
+                        GeometryReader { proxy in
+                            Color.clear.preference(key: SkulletSizeKey.self, value: proxy.size)
+                        }
+                    }
+                    .onPreferenceChange(SkulletSizeKey.self) { size = $0 }
+            }
         }
     }
 #endif
