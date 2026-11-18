@@ -100,18 +100,18 @@
         }
 
         private func kind(waited: CFTimeInterval, pane: SweepPane) -> RevealKind {
-            switch reveal {
-            case .instant:
+            if reveal == .instant {
                 return .instant
-            case .crossfade:
-                return .crossfade
-            case .sweep, .smart:
-                guard style.shimmer != .none else { return .crossfade }
-                var context = RevealContext(pane: pane, screen: window?.bounds ?? UIScreen.main.bounds)
-                context.waited = waited
-                context.shimmerDuration = style.shimmerDuration
-                return RevealPolicy.choose(context)
             }
+            if reveal == .crossfade {
+                return .crossfade
+            }
+            guard style.shimmer != .none else { return .crossfade }
+            var context = RevealContext(pane: pane, screen: window?.bounds ?? UIScreen.main.bounds)
+            // `.sweep` was asked for, so a fast load doesn't turn it into a cut.
+            context.waited = reveal == .sweep ? .infinity : waited
+            context.shimmerDuration = style.shimmerDuration
+            return RevealPolicy.choose(context)
         }
 
         private func crossfade(from old: UIView, to new: UIView) {
