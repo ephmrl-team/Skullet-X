@@ -73,22 +73,30 @@
             let pane = pane
             let progress = progress(at: date)
             ZStack {
-                if !done, size != .zero {
-                    skeleton()
-                        .mask(mask(progress: progress, pane: pane, incoming: false))
+                // No size yet: the skeleton is what gives this stack a size, so it goes in unmasked.
+                if !done {
+                    masked(skeleton(), progress: progress, pane: pane, incoming: false)
                         .accessibilityHidden(true)
                 }
                 if done {
                     content
                 } else {
-                    content
-                        .mask(mask(progress: progress, pane: pane, incoming: true))
+                    masked(content, progress: progress, pane: pane, incoming: true)
                         .overlay {
                             gloss(progress: progress, pane: pane)
                                 .allowsHitTesting(false)
                         }
                         .accessibilityHidden(isLoading)
                 }
+            }
+        }
+
+        @ViewBuilder
+        private func masked<V: View>(_ view: V, progress: CGFloat, pane: SweepPane, incoming: Bool) -> some View {
+            if size == .zero {
+                view
+            } else {
+                view.mask(mask(progress: progress, pane: pane, incoming: incoming))
             }
         }
 
