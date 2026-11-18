@@ -8,10 +8,14 @@ dependency on any app: the package is two libraries and its own tests.
 
 ```swift
 // SwiftUI
-chatList.skulletReveal(isLoading: store.isLoading) { SkeletonChatRow() }
+chatList.skulletReveal(isLoading: store.isLoading) {
+    VStack(spacing: 12) {
+        ForEach(0..<8, id: \.self) { _ in SkeletonBar(height: 14) }
+    }
+}
 
 // UIKit
-reveal.setSkeleton(SkeletonChatRowView())
+reveal.setSkeleton(makeSkeleton())   // stacked SkeletonBarView
 reveal.show(contentView)
 ```
 
@@ -23,7 +27,7 @@ gesture.
 ## Install
 
 ```swift
-.package(url: "https://github.com/ephmrl-team/Skullet-X", from: "0.2.0")
+.package(url: "https://github.com/ephmrl-team/Skullet-X", from: "0.3.0")
 ```
 
 iOS 17+, Swift 6 toolchain (Swift 5 language mode). Products: `SkulletX` (views,
@@ -46,11 +50,15 @@ struct ChatListScreen: View {
             ChatRow(chat: chat)
         }
         .skulletReveal(isLoading: store.isLoading) {
-            VStack(spacing: 0) {
+            VStack(spacing: 12) {
                 ForEach(0..<8, id: \.self) { index in
-                    SkeletonChatRow()
-                        .phase(Double(index) * 0.06)
-                        .frame(height: 72)
+                    HStack(spacing: 12) {
+                        SkeletonBar(width: 48, height: 48, isCircular: true)
+                            .phase(Double(index) * 0.06)
+                        SkeletonBar(height: 14)
+                            .phase(Double(index) * 0.06 + 0.02)
+                    }
+                    .padding(.horizontal, 16)
                 }
             }
         }
@@ -103,7 +111,7 @@ That is the whole integration: one view, two calls (or one modifier).
 | Falls back | frames dropping mid-sweep finish as a crossfade; a pane over 1.5 screens crossfades; reduce motion is instant; reduce transparency drops the gloss |
 | Same look both ways | one `SkeletonStyle` for UIKit and SwiftUI views |
 
-## Not in 0.2
+## Not in 0.3
 
 Measuring sample content, remembered shapes, ordering reveals by row, SSR.
 Those are most of Skullet's code and none of what a list of rows needs.

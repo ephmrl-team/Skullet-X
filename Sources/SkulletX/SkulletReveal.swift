@@ -7,9 +7,9 @@
         ///
         /// ```swift
         /// chatList.skulletReveal(isLoading: store.isLoading) {
-        ///     VStack(spacing: 0) {
-        ///         ForEach(0..<8, id: \.self) { index in
-        ///             SkeletonChatRow().phase(Double(index) * 0.06).frame(height: 72)
+        ///     VStack(spacing: 12) {
+        ///         ForEach(0..<8, id: \.self) { _ in
+        ///             SkeletonBar(height: 14).phase(0.06)
         ///         }
         ///     }
         /// }

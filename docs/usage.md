@@ -1,14 +1,17 @@
 # Usage
 
-## The reveal
+The package gives you primitives and a reveal. Every skeleton is yours to build
+from bars — the library never guesses your layout.
+
+## The reveal (UIKit)
 
 `SkulletRevealView` holds one view at a time and animates the swap.
 
 ```swift
 let reveal = SkulletRevealView()
 
-reveal.setSkeleton(skeletonView)   // the loading state; records when it appeared
-reveal.show(contentView)           // the real thing; sweeps, crossfades, or cuts
+reveal.setSkeleton(skeleton)   // any view; usually a stack of SkeletonBarView
+reveal.show(content)           // the real thing: sweeps, crossfades, or cuts
 ```
 
 - `setSkeleton(_:)` — the skeleton. Calling it again with the same view does nothing.
@@ -30,8 +33,7 @@ The decision in `.smart`, in order:
 
 1. The skeleton was up for under 150 ms → **instant**. A fast load never flashes.
 2. No shimmer (`style.shimmer == .none`) → **crossfade**.
-3. The reveal is bigger than 1.5 screens → **crossfade**. A front across it would
-   be mostly off screen and costly.
+3. The reveal is bigger than 1.5 screens → **crossfade**.
 4. Otherwise → **sweep**.
 
 A sweep that sees more than 100 ms between frames gives way to a crossfade from
@@ -39,27 +41,17 @@ wherever the front got, so a hitch never leaves a half-masked screen.
 
 ## Styling
 
-`SkeletonStyle` is a value type: set what your theme says, leave the rest.
+`SkeletonStyle` carries only what a skeleton cannot decide for itself: colours and
+motion. Sizes, spacing and layout belong to your views.
 
 ```swift
 var style = SkeletonStyle()
 style.base = .label.withAlphaComponent(0.07)   // any UIColor; dynamic colours work
 style.highlight = .white.withAlphaComponent(0.5)
-style.radius = 8
-style.avatarSize = 48
-style.spacing = 12
-style.insets = UIEdgeInsets(top: 12, left: 16, bottom: 12, right: 16)
-style.titleHeight = 14
-style.subtitleHeight = 12
+style.radius = 6
 style.shimmer = .shimmer                       // .shimmer, .pulse or .none
 style.shimmerDuration = SweepClock.shimmerSlow // 4 s; .shimmerFast is 2 s
-
-let reveal = SkulletRevealView()
-reveal.style = style
 ```
-
-Defaults match the web: a translucent grey that reads on light and dark alike, a
-white highlight, 6 pt radius, 48 pt avatar.
 
 `shimmer`:
 
@@ -70,68 +62,88 @@ white highlight, 6 pt radius, 48 pt avatar.
 Everything holds still under **Reduce Motion**; the gloss is dropped under
 **Reduce Transparency**.
 
-## Rows
+## The primitive (UIKit)
 
-`SkeletonChatRowView` is a chat row: avatar, title, subtitle, time.
+`SkeletonBarView` is one bar: a rounded base with the page's shimmer crossing it.
 
 ```swift
-let row = SkeletonChatRowView()
-row.style = style
+let bar = SkeletonBarView()
+bar.style = style
+bar.isCircular = true                 // an avatar rather than a line
+bar.frame = CGRect(x: 16, y: 16, width: 48, height: 48)
 ```
 
-Sizes come from the style (`avatarSize`, `insets`, `spacing`, `titleHeight`,
-`subtitleHeight`), laid out in `layoutSubviews` — no Auto Layout, so a hundred
-rows cost nothing.
+It is a plain `UIView`: give it a frame, or let Auto Layout do it. Corner radius
+comes from `style.radius`, capped at half the height; `isCircular` forces a
+circle. Set `style` again at any time — the shimmer restarts in phase.
 
-Build a whole list by stacking them:
+## Building a skeleton
+
+A row is a few bars in a stack — the same paddings and sizes as your real row, so
+nothing moves when the content lands.
 
 ```swift
-func makeSkeleton(rows: Int = 8) -> UIView {
+func makeSkeleton(style: SkeletonStyle, rows: Int = 8) -> UIView {
     let stack = UIStackView()
     stack.axis = .vertical
+    stack.spacing = 0
+
     for _ in 0..<rows {
-        let row = SkeletonChatRowView()
-        row.style = style
+        let row = UIStackView()
+        row.axis = .horizontal
+        row.alignment = .center
+        row.spacing = 12
+        row.isLayoutMarginsRelativeArrangement = true
+        row.layoutMargins = UIEdgeInsets(top: 12, left: 16, bottom: 12, right: 16)
+
+        let avatar = SkeletonBarView()
+        avatar.style = style
+        avatar.isCircular = true
+        avatar.translatesAutoresizingMaskIntoConstraints = false
+        avatar.widthAnchor.constraint(equalToConstant: 48).isActive = true
+        avatar.heightAnchor.constraint(equalToConstant: 48).isActive = true
+
+        let lines = UIStackView()
+        lines.axis = .vertical
+        lines.spacing = 8
+        for height in [14, 12] {
+            let bar = SkeletonBarView()
+            bar.style = style
+            bar.translatesAutoresizingMaskIntoConstraints = false
+            bar.heightAnchor.constraint(equalToConstant: CGFloat(height)).isActive = true
+            lines.addArrangedSubview(bar)
+        }
+
+        row.addArrangedSubview(avatar)
+        row.addArrangedSubview(lines)
         stack.addArrangedSubview(row)
-        row.heightAnchor.constraint(equalToConstant: 72).isActive = true
     }
     return stack
 }
 ```
 
-For anything else, `SkeletonBarView` is one bar:
-
-```swift
-let bar = SkeletonBarView()
-bar.style = style
-bar.isCircular = true      // an avatar rather than a line
-bar.frame = CGRect(x: 16, y: 16, width: 120, height: 14)
-```
-
 ## SwiftUI
 
-The package ships native SwiftUI views, so nothing is bridged: no
-`UIViewRepresentable`, no hosting controllers, no sizing surprises in a `List`.
+Native views: no `UIViewRepresentable`, no hosting controllers, no sizing
+surprises in a `List`.
 
 ```swift
-import SwiftUI
-import SkulletX
-
-struct ChatListScreen: View {
-    @Environment(Store.self) private var store
-
-    var body: some View {
-        List(store.chats) { chat in
-            ChatRow(chat: chat)
-        }
-        .skulletReveal(isLoading: store.isLoading) {
-            VStack(spacing: 0) {
-                ForEach(0..<8, id: \.self) { index in
-                    SkeletonChatRow()
-                        .phase(Double(index) * 0.06)   // one stream down the list
-                        .frame(height: 72)
+List(store.chats) { chat in
+    ChatRow(chat: chat)
+}
+.skulletReveal(isLoading: store.isLoading) {
+    VStack(spacing: 12) {
+        ForEach(0..<8, id: \.self) { index in
+            HStack(spacing: 12) {
+                SkeletonBar(width: 48, height: 48, isCircular: true)
+                    .phase(Double(index) * 0.06)
+                VStack(alignment: .leading, spacing: 8) {
+                    SkeletonBar(height: 14).phase(Double(index) * 0.06 + 0.02)
+                    SkeletonBar(height: 12).phase(Double(index) * 0.06 + 0.04)
                 }
             }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 12)
         }
     }
 }
@@ -144,34 +156,24 @@ struct ChatListScreen: View {
 - falls back to a plain swap when the shimmer is `.none` or Reduce Motion is on;
 - drops its masks when the reveal is over, so nothing stays layered on the content.
 
-Any view can be the skeleton; the two below are the ones that ship.
-
-### `SkeletonChatRow` and `SkeletonBar`
+### `SkeletonBar`
 
 ```swift
-SkeletonChatRow()                       // avatar, title, subtitle, time
-    .phase(0.12)                        // shift its shimmer along the stream
-
-SkeletonBar(width: 120, height: 14)     // one bar; nil width fills
-    .phase(0.3)
+SkeletonBar(width: 120, height: 14)              // fixed width
+SkeletonBar(height: 14)                          // nil width: fills the space
+SkeletonBar(width: 48, height: 48, isCircular: true)
+    .phase(0.3)                                  // shift its shimmer along the stream
 ```
 
-`SkeletonBar(width:height:style:isCircular:)` takes `width: nil` to fill the space
-it is given, and `isCircular: true` for avatars.
+`phase(_:)` takes 0…1. Offsetting each row by `Double(index) * 0.06` keeps a list
+in one stream instead of a dozen bars pulsing in sync.
 
-The SwiftUI views read the same `SkeletonStyle`: colours are exposed as
-`baseColor` / `highlightColor`, insets as `edgeInsets`, and everything else is
-shared with the UIKit views.
-
-### Mixing
-
-Both halves use one `SkeletonStyle` and one set of numbers, so a screen can be
-UIKit and another SwiftUI without the two looking different.
+Colours come from the same `SkeletonStyle` (`baseColor`, `highlightColor`), so a
+UIKit screen and a SwiftUI screen look identical.
 
 ## Tuning
 
-All the numbers live in one place each and are public, so you can read them
-without forking:
+All the numbers live in one place each and are public:
 
 ```swift
 SweepGeometry.slantDegrees   // 20

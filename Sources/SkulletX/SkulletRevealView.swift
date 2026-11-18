@@ -5,8 +5,8 @@
     /// Swaps a skeleton for its content, sweeping one diagonal front across both.
     ///
     /// ```swift
-    /// reveal.setSkeleton(SkeletonChatRowView())
-    /// reveal.show(contentView) // content arrives
+    /// reveal.setSkeleton(skeletonView)   // built from SkeletonBarView
+    /// reveal.show(contentView)           // content arrives
     /// ```
     public final class SkulletRevealView: UIView {
         /// How content replaces its skeleton.

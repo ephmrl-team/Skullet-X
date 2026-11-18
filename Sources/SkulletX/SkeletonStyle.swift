@@ -2,7 +2,7 @@
     import SkulletXCore
     import UIKit
 
-    /// Colours and metrics of a skeleton. Set what the app's theme says; the rest keeps the web defaults.
+    /// Colours and motion of a skeleton. Everything else — sizes, spacing, layout — is yours.
     public struct SkeletonStyle {
         public enum Shimmer: Equatable, Sendable {
             case shimmer
@@ -26,13 +26,7 @@
         public var radius: CGFloat = 6
         public var shimmer: Shimmer = .shimmer
         public var shimmerDuration: CFTimeInterval = SweepClock.shimmerSlow
-        public var avatarSize: CGFloat = 48
-        public var spacing: CGFloat = 12
-        public var insets = UIEdgeInsets(top: 12, left: 16, bottom: 12, right: 16)
-        public var titleHeight: CGFloat = 14
-        public var subtitleHeight: CGFloat = 12
 
         public init() {}
     }
-
 #endif
