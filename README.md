@@ -11,21 +11,10 @@ reveal.setSkeleton(SkeletonChatRowView())   // while loading
 reveal.show(contentView)                    // when it arrives
 ```
 
-The skeleton is replaced by its content behind one diagonal front: a feathered
-edge crossing the reveal, with a light band trailing it.
-
-## What it does
-
-- **Sweep reveal** — a front at 20° from vertical, 40 pt of feather, a 320 pt
-  gloss band lagging it by 120 pt. Its pace comes from the shimmer, so both read
-  as one gesture. Reveals landing within 150 ms share one front.
-- **Shimmer** — one stream across the page: every bar's phase comes from its
-  position, so the highlight is continuous rather than per-bar.
-- **Holds a fast load back** — a skeleton up for under 150 ms is never shown.
-- **Falls back on its own** — frames dropping (> 100 ms) mid-sweep finish as a
-  crossfade from where the front got; a pane bigger than 1.5 screens crossfades
-  instead of sweeping; reduce motion is instant; reduce transparency drops the
-  gloss.
+While the skeleton is up, one shimmer crosses every bar as a single stream.
+When the content lands, a feathered front at 20° sweeps across both, with a
+light band trailing it — the skeleton leaves and the content arrives in the same
+gesture.
 
 ## Install
 
@@ -33,73 +22,59 @@ edge crossing the reveal, with a light band trailing it.
 .package(url: "https://github.com/ephmrl-team/Skullet-X", from: "0.1.0")
 ```
 
-`SkulletX` (UIKit) depends on `SkulletXCore` (pure numbers, no UIKit) and
-re-exports nothing: import both if you want the geometry.
+iOS 15+, Swift 6 toolchain (Swift 5 language mode). One product, `SkulletX`;
+`SkulletXCore` is its platform-free half (import it for the geometry).
 
-iOS 15+, Swift 6 toolchain, Swift 5 language mode.
-
-## API
-
-### `SkeletonStyle`
-
-Colours and metrics. Defaults are the web ones: translucent base, white
-highlight, 6 pt radius, 48 pt avatar, 12 pt spacing.
+## Quick start
 
 ```swift
-var style = SkeletonStyle()
-style.base = Theme.colors.skeleton            // any UIColor, dynamic is fine
-style.highlight = .white.withAlphaComponent(0.5)
-style.radius = Theme.corner.md
-style.shimmer = .shimmer                      // or .pulse, .none
-style.shimmerDuration = SweepClock.shimmerSlow
-```
+import SkulletX
 
-### Views
+final class ChatListViewController: UIViewController {
+    private let reveal = SkulletRevealView()
+    private let list = UITableView()
 
-| Type | What |
-|---|---|
-| `SkeletonBarView` | One rounded bar with the page's shimmer. `isCircular` for avatars. |
-| `SkeletonChatRowView` | Avatar, title, subtitle, time — sized from `SkeletonStyle`. |
-| `SkulletRevealView` | Holds one view at a time; `setSkeleton` then `show` sweeps between them. |
+    override func viewDidLoad() {
+        super.viewDidLoad()
+        view.addSubview(reveal)
+        reveal.frame = view.bounds
+        reveal.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+        reveal.setSkeleton(makeSkeleton())      // skeleton rows
+        load()
+    }
 
-`SkulletRevealView.reveal` picks the behaviour: `.smart` (default), `.sweep`,
-`.crossfade`, `.instant`.
-
-### Core
-
-`SweepGeometry` and `SweepClock` are pure `CoreGraphics` + `Foundation`: the
-front position, mask stops, gloss stops, pace, and when a reveal joins the
-front under way. They are tested on macOS, without a simulator.
-
-## Using it from SwiftUI
-
-The reveal animates UIKit layers, so it wants a UIView to mask. Until the
-SwiftUI modifier lands, wrap the skeleton:
-
-```swift
-struct SkeletonRow: UIViewRepresentable {
-    func makeUIView(context: Context) -> SkeletonChatRowView { SkeletonChatRowView() }
-    func updateUIView(_ view: SkeletonChatRowView, context: Context) {}
+    private func load() {
+        api.chats { [weak self] chats in
+            guard let self else { return }
+            list.reloadData()
+            reveal.show(list)                   // sweeps from the skeleton
+        }
+    }
 }
 ```
 
-and crossfade to the real content with `.transition(.opacity)`. A native
-`.skulletReveal(isLoading:)` modifier is the next thing on the list.
+That is the whole integration: one view, two calls.
 
-## Tests
+## Docs
 
-```sh
-swift test                                   # core geometry and timing, macOS
-xcodebuild -scheme SkulletX -destination 'generic/platform=iOS' build
-```
+- [Usage](docs/usage.md) — styling, rows, SwiftUI, behaviour, troubleshooting.
+- [The sweep](docs/sweep.md) — the geometry and pacing, and what to change.
+
+## What it does
+
+| | |
+|---|---|
+| Sweep | 20° front, 40 pt feather, 320 pt gloss lagging 120 pt; pace taken from the shimmer |
+| Shimmer | one stream across the page: each bar's phase comes from its position |
+| Hold | a skeleton up for under 150 ms is never shown |
+| Falls back | frames dropping mid-sweep finish as a crossfade; a pane over 1.5 screens crossfades; reduce motion is instant; reduce transparency drops the gloss |
 
 ## Not in 0.1
 
-Measurement of sample content, remembered shapes, `smart` ordering by row,
-SSR, the web component. Those are most of Skullet's code and none of what a
-list of chats needs.
+Measuring sample content, remembered shapes, ordering reveals by row, SSR.
+Those are most of Skullet's code and none of what a list of chats needs.
 
 ## Credits
 
 Geometry and pacing from [Skullet](https://github.com/lochie/skullet) by Lochie
-Axon, MIT. See `LICENSE`.
+Axon, MIT. See [LICENSE](LICENSE).

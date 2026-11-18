@@ -94,10 +94,31 @@
 
         private func restartShimmer() {
             shine.removeAllAnimations()
-            guard style.shimmer == .shimmer, !UIAccessibility.isReduceMotionEnabled else {
-                shine.isHidden = true
-                return
+            layer.removeAnimation(forKey: "pulse")
+            shine.isHidden = true
+            guard !UIAccessibility.isReduceMotionEnabled else { return }
+            switch style.shimmer {
+            case .none:
+                break
+            case .pulse:
+                startPulse()
+            case .shimmer:
+                startShimmer()
             }
+        }
+
+        private func startPulse() {
+            let pulse = CABasicAnimation(keyPath: "opacity")
+            pulse.fromValue = 1
+            pulse.toValue = 0.45
+            pulse.duration = style.shimmerDuration * 0.6
+            pulse.autoreverses = true
+            pulse.repeatCount = .infinity
+            pulse.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
+            layer.add(pulse, forKey: "pulse")
+        }
+
+        private func startShimmer() {
             shine.isHidden = false
             updateShine()
 
