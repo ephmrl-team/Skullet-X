@@ -3,12 +3,16 @@
 Smart skeleton states for iOS, with the diagonal **sweep** reveal from
 [Skullet](https://github.com/lochie/skullet) ported one to one.
 
-UIKit. No Metal, no Objective-C, no measurement magic.
+UIKit and SwiftUI. No Metal, no Objective-C, no measurement magic, and no
+dependency on any app: the package is two libraries and its own tests.
 
 ```swift
-let reveal = SkulletRevealView()
-reveal.setSkeleton(SkeletonChatRowView())   // while loading
-reveal.show(contentView)                    // when it arrives
+// SwiftUI
+chatList.skulletReveal(isLoading: store.isLoading) { SkeletonChatRow() }
+
+// UIKit
+reveal.setSkeleton(SkeletonChatRowView())
+reveal.show(contentView)
 ```
 
 While the skeleton is up, one shimmer crosses every bar as a single stream.
@@ -19,13 +23,42 @@ gesture.
 ## Install
 
 ```swift
-.package(url: "https://github.com/ephmrl-team/Skullet-X", from: "0.1.0")
+.package(url: "https://github.com/ephmrl-team/Skullet-X", from: "0.2.0")
 ```
 
-iOS 15+, Swift 6 toolchain (Swift 5 language mode). One product, `SkulletX`;
-`SkulletXCore` is its platform-free half (import it for the geometry).
+iOS 17+, Swift 6 toolchain (Swift 5 language mode). Products: `SkulletX` (views,
+both UI frameworks) and `SkulletXCore` (pure `CoreGraphics`/`Foundation` — the
+geometry and timing, testable without a simulator).
 
 ## Quick start
+
+### SwiftUI
+
+```swift
+import SkulletX
+import SwiftUI
+
+struct ChatListScreen: View {
+    @Environment(Store.self) private var store
+
+    var body: some View {
+        List(store.chats) { chat in
+            ChatRow(chat: chat)
+        }
+        .skulletReveal(isLoading: store.isLoading) {
+            VStack(spacing: 0) {
+                ForEach(0..<8, id: \.self) { index in
+                    SkeletonChatRow()
+                        .phase(Double(index) * 0.06)
+                        .frame(height: 72)
+                }
+            }
+        }
+    }
+}
+```
+
+### UIKit
 
 ```swift
 import SkulletX
@@ -53,7 +86,7 @@ final class ChatListViewController: UIViewController {
 }
 ```
 
-That is the whole integration: one view, two calls.
+That is the whole integration: one view, two calls (or one modifier).
 
 ## Docs
 
@@ -68,11 +101,12 @@ That is the whole integration: one view, two calls.
 | Shimmer | one stream across the page: each bar's phase comes from its position |
 | Hold | a skeleton up for under 150 ms is never shown |
 | Falls back | frames dropping mid-sweep finish as a crossfade; a pane over 1.5 screens crossfades; reduce motion is instant; reduce transparency drops the gloss |
+| Same look both ways | one `SkeletonStyle` for UIKit and SwiftUI views |
 
-## Not in 0.1
+## Not in 0.2
 
 Measuring sample content, remembered shapes, ordering reveals by row, SSR.
-Those are most of Skullet's code and none of what a list of chats needs.
+Those are most of Skullet's code and none of what a list of rows needs.
 
 ## Credits
 

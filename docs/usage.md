@@ -43,9 +43,9 @@ wherever the front got, so a hitch never leaves a half-masked screen.
 
 ```swift
 var style = SkeletonStyle()
-style.base = Theme.colors.skeleton             // any UIColor; dynamic colours work
+style.base = .label.withAlphaComponent(0.07)   // any UIColor; dynamic colours work
 style.highlight = .white.withAlphaComponent(0.5)
-style.radius = Theme.radius.md
+style.radius = 8
 style.avatarSize = 48
 style.spacing = 12
 style.insets = UIEdgeInsets(top: 12, left: 16, bottom: 12, right: 16)
@@ -110,58 +110,63 @@ bar.frame = CGRect(x: 16, y: 16, width: 120, height: 14)
 
 ## SwiftUI
 
-The reveal animates `CALayer`s, so it wants UIViews to mask. Today the supported
-path in SwiftUI is: skeleton rows through a representable, and a crossfade to
-the content.
+The package ships native SwiftUI views, so nothing is bridged: no
+`UIViewRepresentable`, no hosting controllers, no sizing surprises in a `List`.
 
 ```swift
 import SwiftUI
 import SkulletX
 
-struct SkeletonChatRow: UIViewRepresentable {
-    var style = SkeletonStyle()
-
-    func makeUIView(context: Context) -> SkeletonChatRowView {
-        let row = SkeletonChatRowView()
-        row.style = style
-        return row
-    }
-
-    func updateUIView(_ view: SkeletonChatRowView, context: Context) {
-        view.style = style
-    }
-}
-
 struct ChatListScreen: View {
-    @Environment(BloomManager.self) private var bloom
-    @State private var showSkeleton = true
+    @Environment(Store.self) private var store
 
     var body: some View {
-        ZStack {
-            if showSkeleton {
-                VStack(spacing: 0) {
-                    ForEach(0..<8, id: \.self) { _ in
-                        SkeletonChatRow().frame(height: 72)
-                    }
-                }
-                .transition(.opacity)
-            } else {
-                chatList.transition(.opacity)
-            }
+        List(store.chats) { chat in
+            ChatRow(chat: chat)
         }
-        .animation(.easeInOut(duration: 0.2), value: showSkeleton)
-        .task {
-            // keep the skeleton up at least 150 ms, so a fast load never flashes
-            try? await Task.sleep(for: .milliseconds(150))
-            showSkeleton = bloom.conversations.isEmpty
+        .skulletReveal(isLoading: store.isLoading) {
+            VStack(spacing: 0) {
+                ForEach(0..<8, id: \.self) { index in
+                    SkeletonChatRow()
+                        .phase(Double(index) * 0.06)   // one stream down the list
+                        .frame(height: 72)
+                }
+            }
         }
     }
 }
 ```
 
-A native `.skulletReveal(isLoading:)` modifier — the same sweep, drawn with
-SwiftUI masks over `SweepGeometry` — is the next thing on the list; the geometry
-it needs is already public.
+`.skulletReveal(isLoading:style:skeleton:)`:
+
+- keeps the skeleton up for at least 150 ms, so a fast load never flashes;
+- masks the content in and the skeleton out with the same front, gloss included;
+- falls back to a plain swap when the shimmer is `.none` or Reduce Motion is on;
+- drops its masks when the reveal is over, so nothing stays layered on the content.
+
+Any view can be the skeleton; the two below are the ones that ship.
+
+### `SkeletonChatRow` and `SkeletonBar`
+
+```swift
+SkeletonChatRow()                       // avatar, title, subtitle, time
+    .phase(0.12)                        // shift its shimmer along the stream
+
+SkeletonBar(width: 120, height: 14)     // one bar; nil width fills
+    .phase(0.3)
+```
+
+`SkeletonBar(width:height:style:isCircular:)` takes `width: nil` to fill the space
+it is given, and `isCircular: true` for avatars.
+
+The SwiftUI views read the same `SkeletonStyle`: colours are exposed as
+`baseColor` / `highlightColor`, insets as `edgeInsets`, and everything else is
+shared with the UIKit views.
+
+### Mixing
+
+Both halves use one `SkeletonStyle` and one set of numbers, so a screen can be
+UIKit and another SwiftUI without the two looking different.
 
 ## Tuning
 

@@ -3,7 +3,7 @@ import PackageDescription
 
 let package = Package(
     name: "SkulletX",
-    platforms: [.iOS(.v15), .macOS(.v11)],
+    platforms: [.iOS(.v17), .macOS(.v14)],
     products: [
         .library(name: "SkulletX", targets: ["SkulletX"]),
         .library(name: "SkulletXCore", targets: ["SkulletXCore"]),
