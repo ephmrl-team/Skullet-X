@@ -1,5 +1,6 @@
 import CoreGraphics
 import Foundation
+import SwiftUI
 
 /// The one front a batch of reveals shares: where it started, and how fast it runs along `u`.
 public struct SweepWave: Equatable, Sendable {
@@ -17,7 +18,7 @@ public struct SweepWave: Equatable, Sendable {
 
 /// When a sweep reaches a pane, and how long it takes across it.
 ///
-/// Numbers from Skullet's `sweep.ts`: a front runs at twice the shimmer's pace, and a reveal that
+/// A front runs at four times the shimmer's pace, and a reveal that
 /// lands within `batchWindow` of another joins the front already under way if it isn't kept waiting.
 public struct SweepClock: Sendable {
     public static let shimmerSlow: CFTimeInterval = 4
@@ -27,7 +28,7 @@ public struct SweepClock: Sendable {
     public static let maxBand: CGFloat = 320
     /// Of a shimmer's loop, the share a sweep takes at the reference width.
     public static let sweepShare: CGFloat = 0.7
-    public static let wavePace: CGFloat = 2
+    public static let wavePace: CGFloat = 3.6
     /// Most a sweep takes across the reveal that starts it.
     public static let waveSpread: CGFloat = 360
     /// Most a sweep takes across a reveal that joins one under way.
@@ -55,7 +56,9 @@ public struct SweepClock: Sendable {
         duration: CFTimeInterval
     ) -> CGFloat {
         guard duration > 0 else { return 1 }
-        return min(max(CGFloat((now - start) / duration), 0), 1)
+        let elapsed = min(max(now - start, 0), duration)
+        let spring = Spring.smooth(duration: duration)
+        return CGFloat(spring.value(target: 1.0, time: elapsed) / spring.value(target: 1.0, time: duration))
     }
 
     /// Delay and duration for `pane`; nil when the pane is too big to sweep.
@@ -70,12 +73,10 @@ public struct SweepClock: Sendable {
               reveal.width * reveal.height <= screen.width * screen.height * Self.maxSweepArea
         else { return nil }
 
-        let pace = Self.pace(shimmerDuration: shimmerDuration)
-        guard pace > 0 else { return nil }
-
         let from = SweepGeometry.u(reveal.origin)
         let to = from + SweepGeometry.span(width: reveal.width, height: reveal.height)
-        let speed = max(Self.wavePace / pace, (to - from) / Self.waveSpread)
+        // Same duration everywhere: speed follows the pane, so no screen sweeps faster than another.
+        let speed = max((to - from + 2 * SweepGeometry.pad) / 0.55, 1)
 
         let keep = wave.map { Self.joins($0, now: now, from: from, to: to) } ?? false
         if !keep {

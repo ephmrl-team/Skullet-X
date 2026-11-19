@@ -165,9 +165,8 @@
 
         private func apply(progress: CGFloat) {
             guard let panes else { return }
-            let glossing = !UIAccessibility.isReduceTransparencyEnabled
-            incoming?.apply(progress: progress, pane: panes.incoming, incoming: true, glossing: glossing)
-            outgoing?.apply(progress: progress, pane: panes.outgoing, incoming: false, glossing: false)
+            incoming?.apply(progress: progress, pane: panes.incoming, incoming: true)
+            outgoing?.apply(progress: progress, pane: panes.outgoing, incoming: false)
         }
 
         private func finish(at progress: CGFloat, stalled: Bool) {

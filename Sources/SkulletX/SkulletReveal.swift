@@ -30,6 +30,7 @@
         let style: SkeletonStyle
         let skeleton: () -> Skeleton
 
+        @Environment(\.accessibilityReduceMotion) private var reduceMotion
         @State private var size: CGSize = .zero
         @State private var clock = SweepClock()
         @State private var shownAt = Date()
@@ -77,10 +78,6 @@
                     content
                 } else {
                     masked(content, progress: progress, pane: pane, incoming: true)
-                        .overlay {
-                            gloss(progress: progress, pane: pane)
-                                .allowsHitTesting(false)
-                        }
                         .accessibilityHidden(isLoading)
                 }
             }
@@ -112,7 +109,7 @@
         private func reveal() {
             let now = Date()
             let waited = now.timeIntervalSince(shownAt)
-            guard size != .zero, waited >= RevealPolicy.hold, style.shimmer != .none,
+            guard !reduceMotion, size != .zero, waited >= RevealPolicy.hold, style.shimmer != .none,
                   let timing = clock.timing(
                       for: pane,
                       now: now.timeIntervalSinceReferenceDate,
@@ -135,18 +132,8 @@
         private func mask(progress: CGFloat, pane: SweepPane, incoming: Bool) -> some View {
             SweepMaskView(
                 stops: SweepGeometry.mask(progress: progress, pane: pane, incoming: incoming),
-                size: size,
-                white: false
+                size: size
             )
-        }
-
-        private func gloss(progress: CGFloat, pane: SweepPane) -> some View {
-            SweepMaskView(
-                stops: SweepGeometry.gloss(progress: progress, pane: pane),
-                size: size,
-                white: true
-            )
-            .opacity(UIAccessibility.isReduceTransparencyEnabled ? 0 : 1)
         }
     }
 

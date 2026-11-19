@@ -25,14 +25,14 @@ The front is the line of constant `u`. It travels from a feather before the
 reveal to a feather past it:
 
 ```
-pad    = 40 / cos(20°) ≈ 42.6
+pad    = 68 / cos(20°) ≈ 72.4
 span   = width + height · tan(20°)
 front  = u(reveal.origin) − pad + (span + 2·pad) · progress
 ```
 
 ## The mask
 
-Each pane gets a gradient mask: 13 stops over the 80 pt either side of the front,
+Each pane gets a gradient mask: 17 stops over the 136 pt around the front,
 with `ease(t) = (1 − cos(πt)) / 2`.
 
 - **Incoming** content: opaque behind the front, transparent ahead of it. It fills
@@ -42,23 +42,10 @@ with `ease(t) = (1 − cos(πt)) / 2`.
 
 Stops are clamped into 0…1 and always non-decreasing, because `CAGradientLayer`
 requires it. The gradient axis is the pane's own diagonal: from `(0, 0)` to
-`(axis·sin/w, axis·cos/h)` in unit space, where `axis = w·sin + h·cos`, so
+`(axis·cos/w, axis·sin/h)` in unit space, where `axis = w·cos + h·sin`, so
 `locations` are exactly the fraction along the slant.
 
-## The gloss
-
-A 320 pt band of white trails the front by 120 pt, peaking at 0.45 alpha:
-
-```
-centre = front − 120 / cos(20°)
-half   = 160 / cos(20°)
-alpha  = ease(1 − |2t − 1|) · 0.45
-```
-
-It is drawn as a normal-blend white gradient over the incoming pane. That is
-mathematically the same as Skullet's `feComponentTransfer` (`slope 1 − 0.45`,
-`intercept 0.45`): `c·(1−a) + 255·a`, which is exactly source-over white. No
-filter, no shader, no Metal.
+The gradient controls opacity only; no white gloss is drawn over the content.
 
 ## Pace
 
@@ -69,18 +56,18 @@ it race:
 pace = shimmerDuration · 0.7 / 1600        // seconds per point
 ```
 
-The sweep runs at twice the shimmer's pace, but never so fast that a reveal takes
-more than 360 pt of travel:
+Every screen takes about half a second, so panes never sweep at different speeds:
 
 ```
-speed = max(2 / pace, span / 360)          // points per second
+speed = (span + 2·pad) / 0.55              // points per second
 delay = (from − pad − origin) / speed
 duration = (span + 2·pad) / speed
 ```
 
-On a 390 × 844 screen with the 4 s shimmer: `speed ≈ 1142 pt/s`,
-`duration ≈ 0.68 s`, `delay ≈ −0.04 s` (the front starts a feather before the
-reveal, so the reveal begins already slightly into the sweep).
+Every screen takes 0.55 s: `duration = 0.55 s`, `speed ≈ 1270 pt/s` on 390 × 844,
+`delay ≈ −0.02 s` (the front starts a feather before the
+reveal, so the reveal begins already slightly into the sweep). Spring progress is
+normalized to finish at the end of that duration.
 
 ## One front per batch
 
@@ -112,10 +99,8 @@ hold one per screen (or per reveal) and pass the same `now`.
 |---|---|
 | `slantDegrees` | the angle. Bigger is more theatrical, and makes short rows read as a wipe |
 | `feather` | softness of the edge. Smaller is a harder, more graphic wipe |
-| `glossWidth`, `glossLag` | the band's size and how far behind the front it sits |
-| `glossLift` | how bright it is; 0 removes it |
 | `SweepClock.sweepShare` | how much of the shimmer's loop the sweep takes |
-| `SweepClock.wavePace` | front speed against the shimmer |
+| `SweepClock.wavePace` | kept for API compatibility; the sweep is timed per screen |
 | `RevealPolicy.hold` | how long a fast load is hidden from the user |
 | `style.shimmerDuration` | the loop; the sweep's pace follows it |
 

@@ -59,8 +59,8 @@ private let screen = CGRect(x: 0, y: 0, width: 390, height: 844)
     let axis = SweepGeometry.axis(width: size.width, height: size.height)
 
     #expect(points.start == .zero)
-    #expect(abs(points.end.x * size.width - axis * SweepGeometry.sinSlant) < 0.001)
-    #expect(abs(points.end.y * size.height - axis * SweepGeometry.cosSlant) < 0.001)
+    #expect(abs(points.end.x * size.width - axis * SweepGeometry.cosSlant) < 0.001)
+    #expect(abs(points.end.y * size.height - axis * SweepGeometry.sinSlant) < 0.001)
 }
 
 @Test func paceFollowsTheShimmerLoop() {

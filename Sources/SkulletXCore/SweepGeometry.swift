@@ -20,9 +20,9 @@ public enum SweepGeometry {
     /// Degrees from vertical, top right to bottom left.
     public static let slantDegrees: CGFloat = 20
     /// Softness of the front, points either side of it.
-    public static let feather: CGFloat = 40
+    public static let feather: CGFloat = 68
     /// Stops per ramp: enough for the eased curve to read as one.
-    public static let steps = 12
+    public static let steps = 16
     /// Width of the light band trailing the front, across the slant.
     public static let glossWidth: CGFloat = 320
     /// How far the band's centre trails the front.
@@ -50,7 +50,7 @@ public enum SweepGeometry {
 
     /// Length of a box's shadow on the slant axis, in points.
     public static func axis(width: CGFloat, height: CGFloat) -> CGFloat {
-        width * sinSlant + height * cosSlant
+        width * cosSlant + height * sinSlant
     }
 
     public static func ease(_ t: CGFloat) -> CGFloat {
@@ -118,7 +118,7 @@ public enum SweepGeometry {
         }
         return (
             .zero,
-            CGPoint(x: axis * sinSlant / size.width, y: axis * cosSlant / size.height)
+            CGPoint(x: axis * cosSlant / size.width, y: axis * sinSlant / size.height)
         )
     }
 

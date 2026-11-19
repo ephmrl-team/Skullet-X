@@ -2,11 +2,10 @@
     import SkulletXCore
     import SwiftUI
 
-    /// A pane's slice of the sweep, as a gradient: black for a mask, white for the gloss.
+    /// A pane's slice of the sweep, as an alpha mask.
     struct SweepMaskView: View {
         let stops: (locations: [CGFloat], alphas: [CGFloat])
         let size: CGSize
-        let white: Bool
 
         var body: some View {
             let points = SweepGeometry.gradientPoints(for: size)
@@ -36,7 +35,7 @@
 
         private func stop(alpha: CGFloat, at location: CGFloat) -> Gradient.Stop {
             Gradient.Stop(
-                color: (white ? Color.white : Color.black).opacity(Double(alpha)),
+                color: Color.black.opacity(Double(alpha)),
                 location: Double(location)
             )
         }
